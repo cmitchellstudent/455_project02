@@ -3,8 +3,6 @@ import java.util.Random;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-// Press Shift twice to open the Search Everywhere dialog and type `show whitespaces`,
-// then press Enter. You can now see whitespace characters in your code.
 public class Main {
     public static void main(String[] args) {
         Random rand = new Random();
@@ -72,7 +70,7 @@ class maxtrixThread extends Thread{
     int tID;
     int requestCount = 0;
 
-    //for ease of referencing arrays, currentDomain is 0-indexed, and a +1 is intended only for print statements
+    //for ease of referencing arrays, currentDomain is 0-indexed
     int currentDomain;
     static ReentrantLock[][] lockMatrix;
     static String[][] accessMatrix;
