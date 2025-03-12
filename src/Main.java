@@ -5,64 +5,84 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class Main {
     public static void main(String[] args) {
+        String CLI = "";
+        for (String arg: args) {
+            CLI += arg;
+        }
         Random rand = new Random();
         // N domains, M files
         int m = rand.nextInt(3,8);
         int n = rand.nextInt(3,8);
-        //TODO: switch case for args
-        System.out.println(m + " files and " + n + " domains");
-        String[][] accessMatrix = new String[n][m+n];
-        //populate
-        for (int j = 0; j < accessMatrix.length; j++) {
-            for (int i = 0; i < accessMatrix[j].length; i++) {
-                String[] row = accessMatrix[j];
-                boolean rBool = rand.nextBoolean();
-                boolean wBool = rand.nextBoolean();
-                if (i<m){
-                    if (rBool && wBool){
-                        row[i] = "R/W";
-                    } else if (rBool && !wBool) {
-                        row[i] = "R";
-                    } else if (wBool && !rBool) {
-                        row[i] = "W";
+        System.out.println(m + " files (M) and " + n + " domains (N)");
+
+        switch (CLI) {
+            case ("-S1") -> {
+                String[][] accessMatrix = new String[n][m + n];
+                //populate
+                for (int j = 0; j < accessMatrix.length; j++) {
+                    for (int i = 0; i < accessMatrix[j].length; i++) {
+                        String[] row = accessMatrix[j];
+                        boolean rBool = rand.nextBoolean();
+                        boolean wBool = rand.nextBoolean();
+                        if (i < m) {
+                            if (rBool && wBool) {
+                                row[i] = "R/W";
+                            } else if (rBool && !wBool) {
+                                row[i] = "R";
+                            } else if (wBool && !rBool) {
+                                row[i] = "W";
+                            }
+                        } else {
+                            if (rBool) {
+                                row[i] = "allow";
+                            }
+                        }
+                        if (i == j + m) {
+                            row[i] = "N/A";
+                        }
                     }
-                } else {
-                    if (rBool){
-                        row[i] = "allow";
+                }
+                ReentrantLock[][] lockMatrix = new ReentrantLock[n][m];
+                for (ReentrantLock[] row : lockMatrix) {
+                    Arrays.fill(row, new ReentrantLock());
+                }
+                //print
+                System.out.print("   ");
+                for (int i = 0; i < n + m; i++) {
+                    if (i < m) {
+                        System.out.print("   F" + i + "   ");
+                    } else {
+                        System.out.print("   D" + (i - m) + "   ");
                     }
                 }
-                if (i == j+m){
-                    row[i] = "N/A";
+                System.out.println();
+                for (int i = 0; i < accessMatrix.length; i++) {
+                    System.out.print("D" + (i) + "|");
+                    String[] row = accessMatrix[i];
+                    for (String value : row) {
+                        if (value == null) {
+                            System.out.print("       |");
+                        } else {
+                            System.out.printf("%7s|", value);
+                        }
+                    }
+                    System.out.println();
+                }
+                //create threads
+                for (int i = 0; i < n; i++) {
+                    maxtrixThread t = new maxtrixThread(i, accessMatrix, lockMatrix);
+                    t.start();
                 }
             }
-        }
-        //print
-        System.out.print("   ");
-        for (int i = 0; i < n+m; i++) {
-            if (i<m){
-                System.out.print("   F" + i + "   ");
-            } else {
-                System.out.print("   D" + (i-m) + "   ");
+            case ("-S2") -> {
+                //TODO: Access List
             }
-        }
-        System.out.println();
-        for (int i = 0; i < accessMatrix.length; i++) {
-            System.out.print("D" + (i) +"|");
-            String[] row = accessMatrix[i];
-            for (String value: row) {
-                if (value == null) {
-                    System.out.print("       |");
-                } else{
-                    System.out.printf("%7s|", value);
-                }
+            case ("-S3") -> {
+                //TODO: Capability List
             }
-            System.out.println();
+            default -> System.out.println("Invalid input. Possible arguments are '-S 1', '-S 2', and '-S 3'");
         }
-        //create threads
-        for (int i = 0; i < n; i++) {
-            maxtrixThread t = new maxtrixThread(i, accessMatrix);
-            t.start();
-        }
+
     }
 }
 
@@ -80,14 +100,14 @@ class maxtrixThread extends Thread{
     static int m;
     static int n;
 
-    public maxtrixThread(int ID, String[][]matrix) {
+    public maxtrixThread(int ID, String[][]matrix, ReentrantLock[][] lockMatrix) {
         this.tID = ID;
         currentDomain = tID;
         maxtrixThread.n = matrix.length;
         maxtrixThread.m = matrix[0].length - n;
-        maxtrixThread.lockMatrix = new ReentrantLock[n][m];
+        maxtrixThread.lockMatrix = lockMatrix;
         maxtrixThread.stringMatrix = new String[n][m];
-        //initalize file contents
+        //initialize file contents
         for (String[] strings : stringMatrix) {
             Arrays.fill(strings, "Hi!");
         }
@@ -97,21 +117,24 @@ class maxtrixThread extends Thread{
     //the param lookingFor has intended values "R", "W", and "allow"
     public boolean arbitrate(int currentDomain, int column, String lookingFor){
         int row = currentDomain;
-        if (lookingFor.contains("allow")){
-
-        }
+        String access = accessMatrix[row][column];
         if (column < m){
-            String access = accessMatrix[row][column];
             if (access == null || !access.contains(lookingFor)){
-                System.out.println("Thread " + tID + "(D" + (currentDomain) + "): " + lookingFor + " request failed on file "  + column);
+                System.out.println("Thread " + tID + "(D" + (currentDomain) + "): " + lookingFor + " request failed on F"  + column);
                 return false;
             } else {
-                System.out.println("Thread " + tID + "(D" + (currentDomain) + "): " + lookingFor + " request successful on file "  + column);
+                System.out.println("Thread " + tID + "(D" + (currentDomain) + "): " + lookingFor + " request successful on F"  + column);
                 return true;
             }
         } else {
-            //domain switch
-            return false;
+            if (access == null || !access.contains(lookingFor)){
+                System.out.println("Thread " + tID + "(D" + (currentDomain) + "): switch request failed on D"  + (column-m));
+                return false;
+            } else {
+                System.out.println("Thread " + tID + "(D" + (currentDomain) + "): switch request successful on D"  + (column-m));
+                return true;
+            }
+            //return false;
         }
     }
 
@@ -123,10 +146,9 @@ class maxtrixThread extends Thread{
                 boolean rBool = rand.nextBoolean();
                 //request read
                 if (rBool){
-                    System.out.println("----Thread " + tID + "(D" + (currentDomain) + ")" + " requests to read file "  + column);
+                    System.out.println("----Thread " + tID + "(D" + (currentDomain) + ")" + " requests to read F"  + column);
                     boolean readAccess = arbitrate(tID, column, "R");
                     if (readAccess) {
-                        lockMatrix[currentDomain][column] = new ReentrantLock();
                         lockMatrix[currentDomain][column].lock();
                         System.out.println("Thread " + tID + "(D" + (currentDomain) + ")" +
                                 " reads F" + column +": " + stringMatrix[currentDomain][column]);
@@ -140,10 +162,9 @@ class maxtrixThread extends Thread{
                     }
                 //request write
                 } else {
-                    System.out.println("----Thread " + tID + "(D" + (currentDomain) + ")" + " requests to write to file "  + column);
+                    System.out.println("----Thread " + tID + "(D" + (currentDomain) + ")" + " requests to write to F"  + column);
                     boolean writeAccess = arbitrate(tID, column, "W");
                     if (writeAccess){
-                        lockMatrix[currentDomain][column] = new ReentrantLock();
                         lockMatrix[currentDomain][column].lock();
                         String[] randomStrings = {"Red", "Purple", "Blue", "Yellow", "Orange"};
                         int index = rand.nextInt(0, randomStrings.length);
@@ -160,12 +181,28 @@ class maxtrixThread extends Thread{
                         lockMatrix[currentDomain][column].unlock();
                     }
                 }
+            //domain switching
             } else if (column >= m){
-                //TODO: DOMAIN SWITCHING HERE
+                while (column-m == currentDomain){
+                    column = rand.nextInt(m, m+n);
+                }
+                System.out.println("----Thread " + tID + "(D" + (currentDomain) + ")" + " requests to switch to D"  + (column-m));
+                boolean switchAccess = arbitrate(currentDomain, column, "allow");
+                if(switchAccess){
+                    int oldDomain = currentDomain;
+                    currentDomain = column-m;
+                    System.out.println("Thread " + tID + "(D" + (currentDomain) + ")" + " has switched from D"  + oldDomain + " to D" + currentDomain);
+                    int yields = rand.nextInt(3,8);
+                    System.out.println("Thread " + tID + "(D" + (currentDomain) + ")" +
+                            " yielding " +  yields + " times");
+                    for (int j = 0; j < yields; j++) {
+                        Thread.yield();
+                    }
+                }
+
             }
-            //Note: until domain switching is implemented, threads will end early(before 5 requests) due to the above else if.
             requestCount++;
-            //System.out.println("++++Thread " + tID + "(D" + (currentDomain) + ")" +" request count:" + requestCount);
+            System.out.println("++++Thread " + tID + "(D" + (currentDomain) + ")" +" request count:" + requestCount);
         }
     }
 }
