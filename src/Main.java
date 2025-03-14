@@ -1,4 +1,5 @@
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.Random;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -76,6 +77,59 @@ public class Main {
             }
             case ("-S2") -> {
                 //TODO: Access List
+                String[] operation = {"R", "W", "R/W", null};
+                String[] perm = {"N/A", "allow", null};
+
+                LinkedList<String>[] accessLists = new LinkedList[m + n];
+                for (int i = 0; i < accessLists.length; i++) {
+                    accessLists[i] = new LinkedList<String>();
+                }
+
+                // Create list for each object with random operations/permissions
+                for (int i = 0; i < m+n; i++) {
+                    if (i < m) { // lists for files created first
+                        for (int j = 0; j < n; j++) {
+                            int randOp = rand.nextInt(operation.length);
+                            accessLists[i].add(operation[randOp]); // add operation to each file list
+                        }
+
+                    } else {
+                        // add permissions to each domain list
+                        for (int j = 0; j < n; j++) {
+                            int randPerm = rand.nextInt(perm.length);
+                            accessLists[i].add(perm[randPerm]);
+                        }
+                    }
+                }
+
+                // Print out the lists for each object/domain
+                for (int i = 0; i < accessLists.length; i++) {
+                    if (i < m) {
+                        System.out.print("F" + (i+1) + " --> ");
+                        for (int j = 0; j < n; j++) {
+                            if(accessLists[i].get(j) == null) {
+                                System.out.print("");
+                            } else {
+                                System.out.print("D" + (j+1) + ":" + accessLists[i].get(j) + "  ");
+                            }
+                        }
+                        System.out.println();
+
+                    } else {
+                        System.out.print("D" + (i-m+1) + " --> ");
+                        for (int j = 0; j < n; j++) {
+                            if(accessLists[i].get(j) == null) {
+                                System.out.print("");
+                            } else {
+                                System.out.print("D" + (j+1) + ":" + accessLists[i].get(j) + "  ");
+                            }
+                        }
+                        System.out.println();
+                    }
+                }
+
+                // Run threads; use accessLists to traverse through object lists in thread class
+
             }
             case ("-S3") -> {
                 //TODO: Capability List
@@ -204,5 +258,15 @@ class maxtrixThread extends Thread{
             requestCount++;
             System.out.println("++++Thread " + tID + "(D" + (currentDomain) + ")" +" request count:" + requestCount);
         }
+    }
+}
+
+class ListThread implements Runnable {
+    int ID;
+
+
+    @Override
+    public void run() {
+
     }
 }
