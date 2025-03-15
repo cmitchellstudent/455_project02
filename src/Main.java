@@ -1,7 +1,6 @@
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Random;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class Main {
@@ -76,7 +75,7 @@ public class Main {
                 }
             }
             case ("-S2") -> {
-                //TODO: Access List
+
                 String[] operation = {"R", "W", "R/W", null};
                 String[] perm = {"N/A", "allow", null};
 
@@ -127,6 +126,22 @@ public class Main {
                         System.out.println();
                     }
                 }
+                // Create locks for file access (one lock per file)
+                ReentrantLock[] fileLocks = new ReentrantLock[m];
+                for (int i = 0; i < m; i++) {
+                    fileLocks[i] = new ReentrantLock();
+                }
+
+                // Create an instance of S2Arbitrator and pass m, n along with accessLists
+                S2Arbitrator s2arb = new S2Arbitrator(accessLists, m, n);
+
+                // Create and start a ListThread for each domain, passing the S2Arbitrator
+                for (int i = 0; i < n; i++) {
+                    Thread t = new Thread(new ListThread(i, accessLists, fileLocks, s2arb));
+                    t.start();
+                }
+
+
 
                 // Run threads; use accessLists to traverse through object lists in thread class
 
@@ -263,10 +278,88 @@ class maxtrixThread extends Thread{
 
 class ListThread implements Runnable {
     int ID;
+    LinkedList<String>[] accessLists;
+    ReentrantLock[] fileLocks;
+    S2Arbitrator s2arb;  // S2Arbitrator instance for S2 access control
+    Random rand = new Random();
+    public ListThread(int ID, LinkedList<String>[] accessLists, ReentrantLock[] fileLocks, S2Arbitrator s2arb) {
+        this.ID = ID;
+        this.accessLists = accessLists;
+        this.fileLocks = fileLocks;
+        this.s2arb = s2arb;
+
+    }
+
 
 
     @Override
     public void run() {
+        int currentDomain = ID;
 
+        for (int req = 0; req < 5; req++) { // Each thread makes at least 5 requests
+            int action = rand.nextInt(2); // 0 = file access, 1 = domain switch
+
+            if (action == 0) {
+                // Try accessing a file
+                int fileId = rand.nextInt(fileLocks.length);
+                if (s2arb.arbitrate(currentDomain, fileId, "R")) {
+                    fileLocks[fileId].lock();
+                    try {
+                        System.out.println("D" + (ID + 1) + " accessed F" + (fileId + 1)
+                                + " with: " + accessLists[fileId].get(currentDomain));
+                    } finally {
+                        fileLocks[fileId].unlock();
+                    }
+                } else {
+                    System.out.println("D" + (ID + 1) + " denied access to F" + (fileId + 1));
+                }
+            } else {
+                // Try switching domains
+                int targetDomain = rand.nextInt(s2arb.n);
+                int column = s2arb.m + targetDomain; // Calculate the column index for domain switching
+                if (targetDomain != currentDomain && s2arb.arbitrate(currentDomain, column, "allow")) {
+                    System.out.println("D" + (ID + 1) + " switched from D" + (currentDomain + 1)
+                            + " to D" + (targetDomain + 1));
+                    currentDomain = targetDomain;
+                } else {
+                    System.out.println("D" + (ID + 1) + " denied switching to D" + (targetDomain + 1));
+                }
+            }
+        }
+    }
+}
+
+class S2Arbitrator {
+    LinkedList<String>[] accessLists;
+    int m; // Number of files
+    int n; // Number of domains
+
+    public S2Arbitrator(LinkedList<String>[] accessLists, int m, int n) {
+        this.accessLists = accessLists;
+        this.m = m;
+        this.n = n;
+    }
+
+    public boolean arbitrate(int currentDomain, int column, String lookingFor) {
+        if (column < m) { // File access case
+            String permission = accessLists[column].get(currentDomain);
+            if (permission == null || !permission.contains(lookingFor)) {
+                System.out.println("D" + (currentDomain + 1) + " denied " + lookingFor + " on F" + (column + 1));
+                return false;
+            } else {
+                System.out.println("D" + (currentDomain + 1) + " granted " + lookingFor + " on F" + (column + 1));
+                return true;
+            }
+        } else { // Domain switching case
+            int newDomain = column - m;
+            String permission = accessLists[column].get(currentDomain);
+            if (permission == null || !permission.equals("allow")) {
+                System.out.println("D" + (currentDomain + 1) + " denied switching to D" + (newDomain + 1));
+                return false;
+            } else {
+                System.out.println("D" + (currentDomain + 1) + " granted switching to D" + (newDomain + 1));
+                return true;
+            }
+        }
     }
 }
