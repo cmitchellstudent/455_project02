@@ -297,6 +297,7 @@ class ListThread implements Runnable {
     @Override
     public void run() {
         int currentDomain = ID;
+        String threadInfo = "["+Thread.currentThread().getName()+"]";
 
         for (int req = 0; req < 5; req++) { // Each thread makes at least 5 requests
             int action = rand.nextInt(2); // 0 = file access, 1 = domain switch
@@ -304,16 +305,16 @@ class ListThread implements Runnable {
             if (action == 0) {
                 // Try accessing a file
                 int fileId = rand.nextInt(fileLocks.length);
-                if (s2arb.arbitrate(currentDomain, fileId, "R")) {
+                if (s2arb.arbitrate(currentDomain, fileId, "R", threadInfo)) {
                     fileLocks[fileId].lock();
                     try {
-                        System.out.println("D" + (ID + 1) + " accessed F" + (fileId + 1)
+                        System.out.println(threadInfo + " D" + (ID + 1) + " accessed F" + (fileId + 1)
                                 + " with: " + accessLists[fileId].get(currentDomain));
                     } finally {
                         fileLocks[fileId].unlock();
                     }
                 } else {
-                    System.out.println("D" + (ID + 1) + " denied access to F" + (fileId + 1));
+                    System.out.println(threadInfo + " D" + (ID + 1) + " denied access to F" + (fileId + 1));
                 }
             } else {
                 // Try switching domains
@@ -324,12 +325,13 @@ class ListThread implements Runnable {
                 }
 
                 int column = s2arb.m + targetDomain; // Calculate the column index for domain switching
-                if (s2arb.arbitrate(currentDomain, column, "allow")) {
-                    System.out.println("D" + (ID + 1) + " switched from D" + (currentDomain + 1)
+
+                if (targetDomain != currentDomain && s2arb.arbitrate(currentDomain, column, "allow", threadInfo)) {
+                    System.out.println(threadInfo + " D" + (ID + 1) + " switched from D" + (currentDomain + 1)
                             + " to D" + (targetDomain + 1));
                     currentDomain = targetDomain;
                 } else {
-                    System.out.println("D" + (ID + 1) + " denied switching to D" + (targetDomain + 1));
+                    System.out.println(threadInfo + " D" + (ID + 1) + " denied switching to D" + (targetDomain + 1));
                 }
             }
         }
@@ -347,24 +349,24 @@ class S2Arbitrator {
         this.n = n;
     }
 
-    public boolean arbitrate(int currentDomain, int column, String lookingFor) {
+    public boolean arbitrate(int currentDomain, int column, String lookingFor, String threadInfo) {
         if (column < m) { // File access case
             String permission = accessLists[column].get(currentDomain);
             if (permission == null || !permission.contains(lookingFor)) {
-                System.out.println("D" + (currentDomain + 1) + " denied " + lookingFor + " on F" + (column + 1));
+                System.out.println(threadInfo + "D" + (currentDomain + 1) + " denied " + lookingFor + " on F" + (column + 1));
                 return false;
             } else {
-                System.out.println("D" + (currentDomain + 1) + " granted " + lookingFor + " on F" + (column + 1));
+                System.out.println(threadInfo + "D" + (currentDomain + 1) + " granted " + lookingFor + " on F" + (column + 1));
                 return true;
             }
         } else { // Domain switching case
             int newDomain = column - m;
             String permission = accessLists[column].get(currentDomain);
             if (permission == null || !permission.equals("allow")) {
-                System.out.println("D" + (currentDomain + 1) + " denied switching to D" + (newDomain + 1));
+                System.out.println(threadInfo + "D" + (currentDomain + 1) + " denied switching to D" + (newDomain + 1));
                 return false;
             } else {
-                System.out.println("D" + (currentDomain + 1) + " granted switching to D" + (newDomain + 1));
+                System.out.println(threadInfo + "D" + (currentDomain + 1) + " granted switching to D" + (newDomain + 1));
                 return true;
             }
         }
