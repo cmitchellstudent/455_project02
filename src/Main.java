@@ -1,7 +1,6 @@
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Random;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class Main {
@@ -148,7 +147,9 @@ public class Main {
 
             }
             case ("-S3") -> {
-                //TODO: Capability List
+                
+                Integer[] parameters = {m,n};
+                TaskThree.main(parameters);
             }
             default -> System.out.println("Invalid input. Possible arguments are '-S 1', '-S 2', and '-S 3'");
         }
@@ -318,7 +319,13 @@ class ListThread implements Runnable {
             } else {
                 // Try switching domains
                 int targetDomain = rand.nextInt(s2arb.n);
+
+                while(targetDomain == currentDomain) {
+                    targetDomain = rand.nextInt(s2arb.n); //get a new target domain if domains match
+                }
+
                 int column = s2arb.m + targetDomain; // Calculate the column index for domain switching
+
                 if (targetDomain != currentDomain && s2arb.arbitrate(currentDomain, column, "allow", threadInfo)) {
                     System.out.println(threadInfo + " D" + (ID + 1) + " switched from D" + (currentDomain + 1)
                             + " to D" + (targetDomain + 1));
