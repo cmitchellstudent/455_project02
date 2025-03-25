@@ -43,10 +43,8 @@ public class Main {
                         }
                     }
                 }
-                ReentrantLock[][] lockMatrix = new ReentrantLock[n][m];
-                for (ReentrantLock[] row : lockMatrix) {
-                    Arrays.fill(row, new ReentrantLock());
-                }
+                ReentrantLock[] lockMatrix = new ReentrantLock[m];
+                Arrays.fill(lockMatrix, new ReentrantLock());
                 //print
                 System.out.print("   ");
                 for (int i = 0; i < n + m; i++) {
@@ -162,7 +160,7 @@ class maxtrixThread extends Thread{
 
     //for ease of referencing arrays, currentDomain is 0-indexed
     int currentDomain;
-    static ReentrantLock[][] lockMatrix;
+    static ReentrantLock[] lockList;
     static String[][] accessMatrix;
     //stringMatrix represents files to read/write to
     static String[][] stringMatrix;
@@ -170,12 +168,12 @@ class maxtrixThread extends Thread{
     static int m;
     static int n;
 
-    public maxtrixThread(int ID, String[][]matrix, ReentrantLock[][] lockMatrix) {
+    public maxtrixThread(int ID, String[][]matrix, ReentrantLock[] lockList) {
         this.tID = ID;
         currentDomain = tID;
         maxtrixThread.n = matrix.length;
         maxtrixThread.m = matrix[0].length - n;
-        maxtrixThread.lockMatrix = lockMatrix;
+        maxtrixThread.lockList = lockList;
         maxtrixThread.stringMatrix = new String[n][m];
         //initialize file contents
         for (String[] strings : stringMatrix) {
@@ -219,7 +217,7 @@ class maxtrixThread extends Thread{
                     System.out.println("----Thread " + tID + "(D" + (currentDomain) + ")" + " requests to read F"  + column);
                     boolean readAccess = arbitrate(tID, column, "R");
                     if (readAccess) {
-                        lockMatrix[currentDomain][column].lock();
+                        lockList[column].lock();
                         System.out.println("Thread " + tID + "(D" + (currentDomain) + ")" +
                                 " reads F" + column +": " + stringMatrix[currentDomain][column]);
                         int yields = rand.nextInt(3,8);
@@ -228,14 +226,14 @@ class maxtrixThread extends Thread{
                         for (int j = 0; j < yields; j++) {
                             Thread.yield();
                         }
-                        lockMatrix[currentDomain][column].unlock();
+                        lockList[column].unlock();
                     }
                 //request write
                 } else {
                     System.out.println("----Thread " + tID + "(D" + (currentDomain) + ")" + " requests to write to F"  + column);
                     boolean writeAccess = arbitrate(tID, column, "W");
                     if (writeAccess){
-                        lockMatrix[currentDomain][column].lock();
+                        lockList[column].lock();
                         String[] randomStrings = {"Red", "Purple", "Blue", "Yellow", "Orange"};
                         int index = rand.nextInt(0, randomStrings.length);
                         stringMatrix[currentDomain][column] = randomStrings[index];
@@ -248,7 +246,7 @@ class maxtrixThread extends Thread{
                         for (int j = 0; j < yields; j++) {
                             Thread.yield();
                         }
-                        lockMatrix[currentDomain][column].unlock();
+                        lockList[column].unlock();
                     }
                 }
             //domain switching
