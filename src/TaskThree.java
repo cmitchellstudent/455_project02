@@ -3,7 +3,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.Semaphore;
-
+//begin code changes by Martin Cook C00102798
 public class TaskThree implements Runnable{
     
     private int num; //thread number
@@ -227,3 +227,4 @@ public class TaskThree implements Runnable{
         System.out.println();
     }
 }
+//end code changes by Martin Cook C00102798

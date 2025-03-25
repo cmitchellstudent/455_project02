@@ -4,6 +4,7 @@ import java.util.Random;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class Main {
+//begin code changes by Connor Mitchell C00517462
     public static void main(String[] args) {
         String CLI = "";
         for (String arg: args) {
@@ -74,8 +75,9 @@ public class Main {
                     t.start();
                 }
             }
+//end code changes by Connor Mitchell C00517462
             case ("-S2") -> {
-
+//begin code changes by Jennifer Medina C00462454
                 String[] operation = {"R", "W", "R/W", null};
                 String[] perm = {"N/A", "allow", null};
 
@@ -140,23 +142,20 @@ public class Main {
                     Thread t = new Thread(new ListThread(i, accessLists, fileLocks, s2arb));
                     t.start();
                 }
-
-
-
                 // Run threads; use accessLists to traverse through object lists in thread class
-
+//end code changes by Jennifer Medina C00462454
             }
             case ("-S3") -> {
-                
+//begin code changes by Martin Cook C00102798 (also see TaskThree.java)
                 Integer[] parameters = {m,n};
                 TaskThree.main(parameters);
             }
             default -> System.out.println("Invalid input. Possible arguments are '-S 1', '-S 2', and '-S 3'");
         }
-
+//end code changes by Martin Cook C00102798
     }
 }
-
+//begin code changes by Connor Mitchell C00517462
 class maxtrixThread extends Thread{
     int tID;
     int requestCount = 0;
@@ -277,7 +276,9 @@ class maxtrixThread extends Thread{
         }
     }
 }
+//end code changes by Connor Mitchell C00517462
 
+//begin code changes by Taylor Comeaux C00288877
 class ListThread implements Runnable {
     int ID;
     LinkedList<String>[] accessLists;
@@ -372,3 +373,4 @@ class S2Arbitrator {
         }
     }
 }
+//end code changes by Taylor Comeaux C00288877
