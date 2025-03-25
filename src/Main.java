@@ -163,7 +163,7 @@ class maxtrixThread extends Thread{
     static ReentrantLock[] lockList;
     static String[][] accessMatrix;
     //stringMatrix represents files to read/write to
-    static String[][] stringMatrix;
+    static String[] stringList;
     static Random rand = new Random();
     static int m;
     static int n;
@@ -174,11 +174,9 @@ class maxtrixThread extends Thread{
         maxtrixThread.n = matrix.length;
         maxtrixThread.m = matrix[0].length - n;
         maxtrixThread.lockList = lockList;
-        maxtrixThread.stringMatrix = new String[n][m];
+        maxtrixThread.stringList = new String[m];
         //initialize file contents
-        for (String[] strings : stringMatrix) {
-            Arrays.fill(strings, "Hi!");
-        }
+        Arrays.fill(stringList, "Hi!");
         accessMatrix = matrix;
     }
 
@@ -219,7 +217,7 @@ class maxtrixThread extends Thread{
                     if (readAccess) {
                         lockList[column].lock();
                         System.out.println("Thread " + tID + "(D" + (currentDomain) + ")" +
-                                " reads F" + column +": " + stringMatrix[currentDomain][column]);
+                                " reads F" + column +": " + stringList[column]);
                         int yields = rand.nextInt(3,8);
                         System.out.println("Thread " + tID + "(D" + (currentDomain) + ")" +
                                 " yielding " +  yields + " times");
@@ -236,7 +234,7 @@ class maxtrixThread extends Thread{
                         lockList[column].lock();
                         String[] randomStrings = {"Red", "Purple", "Blue", "Yellow", "Orange"};
                         int index = rand.nextInt(0, randomStrings.length);
-                        stringMatrix[currentDomain][column] = randomStrings[index];
+                        stringList[column] = randomStrings[index];
                         System.out.println("Thread " + tID + "(D" + (currentDomain) + ")" +
                                 " writes to F" + column +": " + randomStrings[index]);
 
