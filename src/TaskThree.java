@@ -28,21 +28,37 @@ public class TaskThree implements Runnable{
 
 
         //randomly assign access values
-        for (int i = 0; i<n;i++)
+        for (int j = 0; j<n;j++)
         {
-            LinkedList<String> k = new LinkedList<>(); //create linked list
+            LinkedList<String> row = new LinkedList<>(); //create linked list
 
-            for (int h = 0; h < m + n; h++) //populate linked list, h is inserted as a index reference of access. the linked list not containing the index means access is denied
+            for (int i = 0; i < m + n; i++) //populate linked list, h is inserted as a index reference of access. the linked list not containing the index means access is denied
             {
                 rand = new Random();
-                boolean access = rand.nextBoolean();
-                
-                if(access){
-                    String accessType = Integer.toString(h);
-                    k.add(accessType);
+                boolean rBool = rand.nextBoolean();
+                boolean wBool = rand.nextBoolean();
+                if (i < m) {
+                    if (rBool && wBool) {
+                        row.add("R/W");
+                    } else if (rBool && !wBool) {
+                        row.add("R");
+                    } else if (wBool && !rBool) {
+                        row.add("W");
+                    } else {
+                        row.add(" ");
+                    }
+                } else {
+                    if (rBool) {
+                        row.add("allow ");
+                    } else {
+                        row.add(" ");
+                    }
+                }
+                if (i == j + m) {
+                    row.set(i, "N/A");
                 }
             }
-            container.add(k); //add linked list to list
+            container.add(row); //add linked list to list
         }
 
         System.out.println();
@@ -72,9 +88,10 @@ public class TaskThree implements Runnable{
         //end of main
     }
 
-    public boolean arbitrateLinkedList(LinkedList<String> list, int index)
+    public boolean arbitrateLinkedList(LinkedList<String> list, int index, String lookingFor)
     {
-        if(list.contains(Integer.toString(index)))
+        String access = list.get(index);
+        if(access.startsWith(lookingFor))
         {
             return true;
         }
@@ -102,7 +119,7 @@ public class TaskThree implements Runnable{
             
             int target = rand.nextInt(0, m+n); //random target
 
-            while(target == domain) //if target is the same as current domain, get new target
+            while(target-m == domain) //if target is the same as current domain, get new target
             {
                 target = rand.nextInt(0, m+n);
             }
@@ -110,36 +127,52 @@ public class TaskThree implements Runnable{
             //if target is a file
             if (target < m)
             {
-                System.out.println(getThreadInfo() + " is trying to access file " + target);
+                boolean rBool = rand.nextBoolean();
+                if(rBool){
+                    System.out.println(getThreadInfo() + " is trying to read file " + target);
+                    boolean readAccess = arbitrateLinkedList(container.get(domain), target, "R");
+                    if (readAccess){
+                        System.out.println(getThreadInfo() + " has read access to file " + target);
+                        sems[target].acquireUninterruptibly();                                            //acquire semaphore
+                        System.out.println(getThreadInfo() + " is reading file " + target);
 
-                if (arbitrateLinkedList(container.get(domain), target)) //if access is granted
-                {
-                    System.out.println(getThreadInfo() + " has access to file " + target);
-                    sems[target].acquireUninterruptibly();                                            //acquire semaphore
-                    System.out.println(getThreadInfo() + " has accessed file " + target);
+                        //yields
+                        int cycles = rand.nextInt(3,8);
+                        System.out.println(getThreadInfo() + " is yielding " + cycles + " times");
+                        for(int u = 0; u < cycles; u++)
+                        {
+                            Thread.yield();                                                               //yield during semaphore access
+                        }
 
-                    //yields
-                    int cycles = rand.nextInt(3,8);
-                    System.out.println(getThreadInfo() + " is yielding " + cycles + " times");
-                    for(int u = 0; u < cycles; u++)
-                    {
-                        Thread.yield();                                                               //yield during semaphore access
+                        System.out.println(getThreadInfo() + " is releasing file " + target);
+                        sems[target].release();
                     }
+                } else {
+                    System.out.println(getThreadInfo() + " is trying to write to file " + target);
+                    boolean writeAccess = arbitrateLinkedList(container.get(domain), target, "W");
+                    if (writeAccess){
+                        System.out.println(getThreadInfo() + " has write access to file " + target);
+                        sems[target].acquireUninterruptibly();                                            //acquire semaphore
+                        System.out.println(getThreadInfo() + " is writing to file " + target);
 
-                    System.out.println(getThreadInfo() + " is releasing file " + target);
-                    sems[target].release();                                                           //release semaphore
-                }
-                else
-                {
-                    System.out.println(getThreadInfo() + " is denied access to file " + target);
-                }
+                        //yields
+                        int cycles = rand.nextInt(3,8);
+                        System.out.println(getThreadInfo() + " is yielding " + cycles + " times");
+                        for(int u = 0; u < cycles; u++)
+                        {
+                            Thread.yield();                                                               //yield during semaphore access
+                        }
 
+                        System.out.println(getThreadInfo() + " is releasing file " + target);
+                        sems[target].release();
+                    }
+                }
             }
             else //if target is a domain
             {
                 System.out.println(getThreadInfo() + " is trying to switch to domain " + (target-m));
-
-                if (arbitrateLinkedList(container.get(domain), target)) //if access is granted
+                boolean switchAccess = arbitrateLinkedList(container.get(domain), target, "allow");
+                if (switchAccess)
                 {
                     System.out.println(getThreadInfo() + " has access to domain " + (target-m));
                     this.domain = target - m;
@@ -159,43 +192,23 @@ public class TaskThree implements Runnable{
     //prints linked list of access
     private static void printList()
     {
-        System.out.println("Printing list");
-        System.out.println("-------------");
-
-        System.out.println();
-        System.out.println();
-
-        System.out.print("          ");
-        
-        for (int i = 0; i < m + n ; i++)
-        {
-            if (i < m)
-            {
-                System.out.print("File " + i + "      ");
-            }
-            else
-            {
-                System.out.print("Domain " + (i-m) + "    ");
-            }
-        }
-
-        System.out.println();
-        System.out.println();
-
 
         for (int i = 0; i < container.size(); i++)
         {
-            System.out.print("Domain " + i + ": ");
+            System.out.print("Domain " + i + " -> ");
             LinkedList<String> k = container.get(i);
             for (int j = 0; j < m+n; j++)
             {
-                if (k.contains(Integer.toString(j)))
-                {
-                    System.out.print("Access      ");
-                }
-                else 
-                {
-                    System.out.print("No Access   ");
+                if (j < m){
+                    if (!k.get(j).startsWith(" ")){
+                        System.out.print("F" + (j) + ": ");
+                        System.out.print(k.get(j) + ", ");
+                    }
+                } else {
+                    if (!k.get(j).startsWith(" ") && !k.get(j).startsWith("N/A")){
+                        System.out.print("D" + (j-m) + ": ");
+                        System.out.print(k.get(j) + ", ");
+                    }
                 }
                 
 
@@ -205,8 +218,8 @@ public class TaskThree implements Runnable{
                 }
             }
 
-            System.out.println();
-            System.out.println();
+            //System.out.println();
+            //System.out.println();
 
         }
 
